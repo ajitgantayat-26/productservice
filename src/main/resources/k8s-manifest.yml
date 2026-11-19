@@ -1,0 +1,69 @@
+# Kubernetes manifest for SpringSSOService
+# Apply with: kubectl apply -f spring-sso-service-k8s.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: product-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: product-service
+  labels:
+    app: product-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: spring-sso-service
+          image: ajitgantayat26/product-service:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9090
+          startupProbe:
+            tcpSocket:
+              port: 9090
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 9090
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: product-service
+spec:
+  # LoadBalancer exposes the app on localhost:8082 with Docker Desktop's
+  # Kubernetes. On a cloud cluster it creates a public load balancer.
+  # Use ClusterIP instead if you add an Ingress.
+  type: LoadBalancer
+  selector:
+    app: product-service
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
